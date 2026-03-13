@@ -1,0 +1,57 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # P1 — cloudaura-rag (FastAPI)
+  - job_name: "cloudaura-rag"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8001"]
+        labels:
+          project: "P1"
+          service: "cloudaura-rag"
+          stack: "fastapi"
+
+  # P2 — cloudaura-slm (FastAPI)
+  - job_name: "cloudaura-slm"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8002"]
+        labels:
+          project: "P2"
+          service: "cloudaura-slm"
+          stack: "fastapi"
+
+  # P5 — cloudaura-voice (FastAPI)
+  - job_name: "cloudaura-voice"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8005"]
+        labels:
+          project: "P5"
+          service: "cloudaura-voice"
+          stack: "fastapi"
+
+  # P6 — aura-platform (.NET / prometheus-net)
+  - job_name: "aura-platform"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8006"]
+        labels:
+          project: "P6"
+          service: "aura-platform"
+          stack: "dotnet"
+
+  # Node metrics (host machine)
+  - job_name: "node"
+    static_configs:
+      - targets: ["node-exporter:9100"]
