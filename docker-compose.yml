@@ -86,13 +86,14 @@ services:
       - NEXTAUTH_URL=${LANGFUSE_NEXTAUTH_URL:-http://localhost:3001}
       - SALT=${LANGFUSE_SALT:-changeme-salt}
       - TELEMETRY_ENABLED=false
+      - HOSTNAME=0.0.0.0
     ports:
       - "127.0.0.1:3001:3000"
     depends_on:
       langfuse-db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/public/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/public/health"]
       interval: 15s
       timeout: 5s
       retries: 5
