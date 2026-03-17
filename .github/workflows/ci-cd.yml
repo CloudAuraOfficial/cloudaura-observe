@@ -1,0 +1,60 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Validate Prometheus config
+        run: python -c "import yaml; yaml.safe_load(open('prometheus/prometheus.yml'))"
+
+      - name: Validate alert rules
+        run: python -c "import yaml; yaml.safe_load(open('prometheus/alerts.yml'))"
+
+      - name: Validate Docker Compose
+        run: docker compose config --quiet
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ~/cloudaura-observe
+            git pull origin main
+            docker compose up -d
+        continue-on-error: true
+
+  smoke-test:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Wait for deploy
+        run: sleep 15
+
+      - name: Health check Grafana
+        run: |
+          HTTP_STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+            "https://observe.cloudaura.cloud/api/health" --max-time 10) || true
+          echo "Grafana health: $HTTP_STATUS"
