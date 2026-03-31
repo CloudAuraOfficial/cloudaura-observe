@@ -101,7 +101,7 @@ services:
     restart: unless-stopped
 
   tempo:
-    image: grafana/tempo:2.4
+    image: grafana/tempo:2.7.2
     container_name: observe-tempo
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
