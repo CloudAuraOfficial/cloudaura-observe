@@ -7,3 +7,12 @@ datasources:
     url: http://172.17.0.1:9090
     isDefault: true
     editable: false
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://172.17.0.1:3200
+    editable: false
+    jsonData:
+      nodeGraph:
+        enabled: true

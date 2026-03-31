@@ -100,7 +100,26 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  tempo:
+    image: grafana/tempo:2.4
+    container_name: observe-tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "127.0.0.1:3200:3200"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
 volumes:
   prometheus_data:
   grafana_data:
   postgres_data:
+  tempo_data:
