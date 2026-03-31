@@ -51,6 +51,16 @@ scrape_configs:
           service: "aura-platform"
           stack: "dotnet"
 
+  # P6 — aura-platform Worker (prometheus-net, metrics port)
+  - job_name: "aura-platform-worker"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["localhost:9091"]
+        labels:
+          project: "P6"
+          service: "aura-worker"
+          stack: "dotnet"
+
   # Node metrics (host machine)
   - job_name: "node"
     static_configs:

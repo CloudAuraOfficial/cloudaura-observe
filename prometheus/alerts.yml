@@ -38,6 +38,71 @@ groups:
           summary: "High p95 latency on {{ $labels.service }}"
           description: "p95 latency on {{ $labels.service }} exceeds 5s for 3 minutes."
 
+  - name: emissionload_health
+    rules:
+      # EmissionLoad failure rate above 5% over 30 minutes
+      - alert: EmissionLoadHighFailureRate
+        expr: |
+          (
+            sum(rate(aura_emissionload_container_executions_total{result!="success"}[30m]))
+            /
+            sum(rate(aura_emissionload_container_executions_total[30m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "EmissionLoad failure rate above 5%"
+          description: "EmissionLoad container failure rate has exceeded 5% over the last 30 minutes."
+
+      # EmissionLoad P95 latency above 5 minutes
+      - alert: EmissionLoadHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(aura_run_duration_seconds_bucket{job="aura-platform-worker"}[10m]))
+          ) > 300
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "EmissionLoad run P95 latency above 5 minutes"
+          description: "P95 deployment run duration exceeds 300s for 10 minutes."
+
+      # Queue backlog above 5 for 15 minutes
+      - alert: EmissionLoadQueueBacklog
+        expr: aura_queue_depth > 5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "EmissionLoad queue backlog"
+          description: "Deployment run queue depth has been above 5 for 15 minutes."
+
+      # No runs completed in 2 hours despite active schedule
+      - alert: EmissionLoadNoRuns
+        expr: |
+          (time() - aura_scheduler_last_evaluation_timestamp) < 120
+          and
+          increase(aura_runs_completed_total[2h]) == 0
+          and
+          aura_scheduled_runs_total > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No deployment runs completed in 2 hours"
+          description: "Scheduler is active but no runs have completed in the last 2 hours."
+
+      # Worker metrics endpoint unreachable
+      - alert: AuraWorkerDown
+        expr: up{job="aura-platform-worker"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Aura Worker is down"
+          description: "Worker metrics endpoint (port 9091) has been unreachable for 2 minutes."
+
   - name: resource_health
     rules:
       # High CPU usage on host
