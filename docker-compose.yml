@@ -118,6 +118,10 @@ services:
       - "127.0.0.1:3200:3200"
       - "127.0.0.1:4317:4317"
       - "127.0.0.1:4318:4318"
+      # docker0 gateway binding: OTLP ingest must stay reachable from bridge
+      # containers (aura-platform exports to 172.17.0.1:4317); not internet-routable
+      - "172.17.0.1:4317:4317"
+      - "172.17.0.1:4318:4318"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200/ready"]
       interval: 15s
