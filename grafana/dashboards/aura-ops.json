@@ -1,0 +1,354 @@
+{
+  "uid": "aura-ops",
+  "title": "Aura Ops",
+  "description": "Live operations view of the Aura platform: run queue, completions, durations, scheduler heartbeat, and API traffic. Built for split-screen demos \u2014 trigger a run and watch the panels move.",
+  "tags": [
+    "aura",
+    "P6"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Queue Depth",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "aura_queue_depth"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Scheduler Heartbeat Lag",
+      "type": "stat",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "time() - aura_scheduler_last_evaluation_timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 120
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Runs Completed (24h)",
+      "type": "stat",
+      "gridPos": {
+        "x": 9,
+        "y": 0,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(aura_runs_completed_total[24h]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Run Success Rate (24h)",
+      "type": "stat",
+      "gridPos": {
+        "x": 14,
+        "y": 0,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(aura_runs_completed_total{status=\"Succeeded\"}[24h])) / sum(increase(aura_runs_completed_total[24h]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.8
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Stale Runs Reaped (24h)",
+      "type": "stat",
+      "gridPos": {
+        "x": 19,
+        "y": 0,
+        "w": 5,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(aura_stale_runs_reaped_total[24h])) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "title": "Runs Completed by Status (5m increase)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (increase(aura_runs_completed_total[5m]))",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 25,
+            "drawStyle": "bars"
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 7,
+      "title": "Queue Depth Over Time",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "aura_queue_depth",
+          "legendFormat": "queued runs"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 20
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 8,
+      "title": "Run Duration p50 / p95",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(aura_run_duration_seconds_bucket[30m])))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(aura_run_duration_seconds_bucket[30m])))",
+          "legendFormat": "p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 9,
+      "title": "Layer Duration p95 by Executor",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, executor_type) (rate(aura_layer_duration_seconds_bucket[30m])))",
+          "legendFormat": "{{executor_type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 10,
+      "title": "Layers Executed by Status (5m increase)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (increase(aura_layers_executed_total[5m]))",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 25,
+            "drawStyle": "bars"
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 11,
+      "title": "API Requests by Status (rate)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 20,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (status_code) (rate(aura_http_requests_total[5m]))",
+          "legendFormat": "HTTP {{status_code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 12,
+      "title": "Auth Attempts by Result (5m increase)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 20,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (result) (increase(aura_auth_attempts_total[5m]))",
+          "legendFormat": "{{result}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 25,
+            "drawStyle": "bars"
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    }
+  ]
+}
