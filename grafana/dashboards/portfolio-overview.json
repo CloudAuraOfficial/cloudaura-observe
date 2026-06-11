@@ -1,178 +1,273 @@
 {
-  "dashboard": {
-    "id": null,
-    "uid": "portfolio-overview",
-    "title": "CloudAura Portfolio Overview",
-    "tags": ["cloudaura", "overview"],
-    "timezone": "browser",
-    "refresh": "30s",
-    "time": {
-      "from": "now-1h",
-      "to": "now"
-    },
-    "templating": {
-      "list": [
+  "id": null,
+  "uid": "portfolio-overview",
+  "title": "CloudAura Portfolio Overview",
+  "tags": [
+    "cloudaura",
+    "overview"
+  ],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(up, service)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Service Status",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
         {
-          "name": "service",
-          "type": "query",
-          "datasource": "Prometheus",
-          "query": "label_values(up, service)",
-          "refresh": 2,
-          "includeAll": true,
-          "multi": true,
-          "current": { "text": "All", "value": "$__all" }
+          "expr": "up{service=~\"$service\"}",
+          "legendFormat": "{{project}} \u2014 {{service}}"
         }
-      ]
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
     },
-    "panels": [
-      {
-        "id": 1,
-        "title": "Service Status",
-        "type": "stat",
-        "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
-        "targets": [
-          {
-            "expr": "up{service=~\"$service\"}",
-            "legendFormat": "{{project}} — {{service}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "mappings": [
-              { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
-            ],
-            "thresholds": {
-              "steps": [
-                { "color": "red", "value": null },
-                { "color": "green", "value": 1 }
-              ]
-            }
-          }
-        },
-        "options": {
-          "colorMode": "background",
-          "graphMode": "none",
-          "textMode": "auto",
-          "reduceOptions": { "calcs": ["lastNotNull"] }
-        }
+    {
+      "id": 2,
+      "title": "Request Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
       },
-      {
-        "id": 2,
-        "title": "Request Rate (req/s)",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
-        "targets": [
-          {
-            "expr": "sum by (service) (rate(http_requests_total{service=~\"$service\"}[5m]))",
-            "legendFormat": "{{service}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "reqps",
-            "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 }
-          }
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(http_requests_total{service=~\"$service\"}[5m]))",
+          "legendFormat": "{{service}}"
         }
-      },
-      {
-        "id": 3,
-        "title": "Error Rate (%)",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
-        "targets": [
-          {
-            "expr": "sum by (service) (rate(http_requests_total{status=~\"5..\",service=~\"$service\"}[5m])) / sum by (service) (rate(http_requests_total{service=~\"$service\"}[5m])) * 100",
-            "legendFormat": "{{service}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 },
-            "thresholds": {
-              "steps": [
-                { "color": "green", "value": null },
-                { "color": "yellow", "value": 1 },
-                { "color": "red", "value": 5 }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 4,
-        "title": "p95 Latency",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, sum by (le, service) (rate(http_request_duration_seconds_bucket{service=~\"$service\"}[5m])))",
-            "legendFormat": "{{service}} p95"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s",
-            "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }
-          }
-        }
-      },
-      {
-        "id": 5,
-        "title": "p50 Latency",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.50, sum by (le, service) (rate(http_request_duration_seconds_bucket{service=~\"$service\"}[5m])))",
-            "legendFormat": "{{service}} p50"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s",
-            "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }
-          }
-        }
-      },
-      {
-        "id": 6,
-        "title": "Requests by Status Code",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
-        "targets": [
-          {
-            "expr": "sum by (status) (rate(http_requests_total{service=~\"$service\"}[5m]))",
-            "legendFormat": "{{status}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "reqps",
-            "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } }
-          }
-        }
-      },
-      {
-        "id": 7,
-        "title": "Requests In Progress",
-        "type": "timeseries",
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
-        "targets": [
-          {
-            "expr": "sum by (service) (http_requests_in_progress{service=~\"$service\"})",
-            "legendFormat": "{{service}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "short",
-            "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2
           }
         }
       }
-    ],
-    "schemaVersion": 39
-  },
-  "overwrite": true
+    },
+    {
+      "id": 3,
+      "title": "Error Rate (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(http_requests_total{status=~\"5..\",service=~\"$service\"}[5m])) / sum by (service) (rate(http_requests_total{service=~\"$service\"}[5m])) * 100",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "p95 Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, service) (rate(http_request_duration_seconds_bucket{service=~\"$service\"}[5m])))",
+          "legendFormat": "{{service}} p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "p50 Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, service) (rate(http_request_duration_seconds_bucket{service=~\"$service\"}[5m])))",
+          "legendFormat": "{{service}} p50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Requests by Status Code",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(http_requests_total{service=~\"$service\"}[5m]))",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Requests In Progress",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "targets": [
+        {
+          "expr": "sum by (service) (http_requests_in_progress{service=~\"$service\"})",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2
+          }
+        }
+      }
+    }
+  ],
+  "schemaVersion": 39
 }
