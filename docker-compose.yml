@@ -9,12 +9,17 @@ services:
       - "--storage.tsdb.path=/prometheus"
       - "--storage.tsdb.retention.time=30d"
       - "--web.enable-lifecycle"
+      # docker0 gateway bind (same rationale as tempo below): reachable from the host
+      # and from bridge containers (grafana datasource = 172.17.0.1:9090), NOT from the
+      # internet. 127.0.0.1 would cut grafana off; 0.0.0.0 exposed the UI + lifecycle API
+      # publicly (found 2026-07-01).
       - "--web.listen-address=127.0.0.1:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     healthcheck:
+      # must match --web.listen-address (host netmode: localhost no longer answers)
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 15s
       timeout: 5s
@@ -25,7 +30,13 @@ services:
     image: grafana/grafana:11.4.0
     container_name: observe-grafana
     mem_limit: 512m
+    # host netmode + loopback bind: the host drops bridge->host-IP traffic (found
+    # 2026-07-01 — the provisioned 172.17.0.1:9090 datasource never worked), so
+    # grafana joins the host namespace and reaches prometheus/tempo via 127.0.0.1.
+    # nginx (observe.cloudaura.cloud -> 127.0.0.1:3000) is unaffected.
+    network_mode: host
     environment:
+      - GF_SERVER_HTTP_ADDR=127.0.0.1
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-changeme}
       - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-http://localhost:3000}
@@ -37,8 +48,6 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
-    ports:
-      - "127.0.0.1:3000:3000"
     depends_on:
       prometheus:
         condition: service_healthy
