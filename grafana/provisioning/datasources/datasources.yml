@@ -16,3 +16,9 @@ datasources:
     jsonData:
       nodeGraph:
         enabled: true
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://127.0.0.1:3100
+    editable: false

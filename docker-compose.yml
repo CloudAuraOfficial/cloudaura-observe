@@ -138,8 +138,43 @@ services:
       retries: 3
     restart: unless-stopped
 
+  loki:
+    image: grafana/loki:3.3.0
+    container_name: observe-loki
+    mem_limit: 512m
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    user: root  # needs to own /loki volume dirs
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      # loopback publish so host-net Grafana reaches it at 127.0.0.1:3100;
+      # promtail reaches it via the bridge network as loki:3100
+      - "127.0.0.1:3100:3100"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.3.0
+    container_name: observe-promtail
+    mem_limit: 128m
+    command: ["-config.file=/etc/promtail/promtail-config.yaml"]
+    volumes:
+      - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   prometheus_data:
   grafana_data:
   postgres_data:
   tempo_data:
+  loki_data:
