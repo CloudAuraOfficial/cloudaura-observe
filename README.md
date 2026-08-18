@@ -55,7 +55,7 @@ Prometheus scrapes the following jobs every 15 seconds:
 
 ## Alert Rules
 
-Six alert rules across two groups:
+Eleven alert rules across three groups (`prometheus/alerts.yml`):
 
 ### Service Health
 
@@ -64,6 +64,16 @@ Six alert rules across two groups:
 | **ServiceDown** | `up == 0` for 2m | critical |
 | **HighErrorRate** | >5% 5xx responses for 3m | warning |
 | **HighLatency** | p95 latency > 5s for 3m | warning |
+
+### Workload Health (aura-platform runs)
+
+| Alert | Condition | Severity |
+|-------|-----------|----------|
+| **HighFailureRate** | >5% failed runs over 30m | warning |
+| **HighLatency** | p95 run duration > 300s | warning |
+| **QueueBacklog** | queue depth > 5 for 15m | warning |
+| **NoRuns** | no completions in 2h with an active scheduler | warning |
+| **AuraWorkerDown** | worker target down | critical |
 
 ### Resource Health
 
@@ -75,15 +85,17 @@ Six alert rules across two groups:
 
 ## Dashboards
 
-Grafana ships with two pre-provisioned dashboards:
+Grafana ships with four pre-provisioned dashboards:
 
-- **Portfolio Overview** — service uptime, request rates, error rates, latency across all projects
-- **Host Metrics** — CPU, memory, disk, and network usage from Node Exporter
+- **CloudAura Portfolio Overview** — service uptime, request rates, error rates, latency across all projects
+- **Host Machine Metrics** — CPU, memory, disk, and network usage from Node Exporter
+- **Aura Ops** — orchestration platform API/worker health
+- **EmissionLoad Observability** — run throughput, durations, queue depth, failure rate
 
 ## Tech Stack
 
 - **Metrics:** Prometheus v2.51.2 (host network mode, 30-day TSDB retention)
-- **Visualization:** Grafana 11.4.0 (anonymous read access enabled, auto-provisioned datasources and dashboards)
+- **Visualization:** Grafana 11.4.0 (authenticated access only — anonymous auth disabled; auto-provisioned datasources and dashboards)
 - **Host Metrics:** Node Exporter v1.8.1
 - **LLM Observability:** Langfuse 2 (self-hosted, backed by PostgreSQL 16)
 
