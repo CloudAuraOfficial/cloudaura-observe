@@ -1,0 +1,18 @@
+# E05 bench target — host-net so Prometheus (host-net) scrapes 127.0.0.1:8019. Loopback only.
+services:
+  faultsvc:
+    build: ./faultsvc
+    container_name: observe-bench-faultsvc
+    network_mode: host
+    mem_limit: 128m
+    cpus: 0.5
+    environment:
+      - BENCH_FAULTS_ENABLED=1
+      - TELEMETRY=baseline
+      - SERVICE_NAME=faultsvc
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8019/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped

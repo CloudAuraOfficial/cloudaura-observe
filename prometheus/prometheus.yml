@@ -65,3 +65,13 @@ scrape_configs:
   - job_name: "node"
     static_configs:
       - targets: ["localhost:9100"]
+
+  # E05 bench — fault-injection target (bench only, loopback)
+  - job_name: "bench-faultsvc"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["localhost:8019"]
+        labels:
+          project: "E05"
+          service: "faultsvc"
+          stack: "bench"
