@@ -21,10 +21,9 @@ def firing():
     return sorted({a["labels"]["alertname"] for a in json.loads(b or b'{"data":{"alerts":[]}}')["data"]["alerts"]
                    if a["labels"].get("severity") == "bench" and a["state"] == "firing"})
 
-# rotation state: cell index over FAULTS × {baseline, enriched}
-sp = os.path.join(HERE, "state.json"); st = json.load(open(sp)) if os.path.exists(sp) else {"i": 0}
-fault, tel = FAULTS[st["i"] % 8], ["baseline", "enriched"][(st["i"] // 8) % 2]
-json.dump({"i": st["i"] + 1}, open(sp, "w"))
+cell = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {"fault": "retriever_timeout", "telemetry": "baseline"}
+fault, tel = cell["fault"], cell["telemetry"]
+if http(SVC + "/health")[0] != 200: print(json.dumps({"skipped": "faultsvc down"})); sys.exit(0)
 
 http(SVC + "/bench/telemetry", {"level": tel}); http(SVC + "/bench/fault", {"fault": None})
 stop = threading.Event(); hits = {"ok": 0, "err": 0, "partial": 0}
@@ -40,23 +39,21 @@ time.sleep(45)  # warm-up so rate() windows have data and no stale alert is firi
 assert not firing(), f"bench alert already firing before inject: {firing()}"
 hits.update(ok=0, err=0, partial=0)
 
-t_inject = time.time(); http(SVC + "/bench/fault", {"fault": fault}); first = None
-while time.time() - t_inject < FAULT_S:
-    if first is None and (a := firing()): first = (time.time(), a)
-    time.sleep(5)
-under = dict(hits); http(SVC + "/bench/fault", {"fault": None}); t_clear = time.time(); resolved = None
+t_inject = time.time(); first = None
+try:
+    http(SVC + "/bench/fault", {"fault": fault})
+    while time.time() - t_inject < FAULT_S:
+        if first is None and (a := firing()): first = (time.time(), a)
+        time.sleep(5)
+finally:
+    under = dict(hits); http(SVC + "/bench/fault", {"fault": None})   # never leave a fault on
+t_clear = time.time(); resolved = None
 while time.time() - t_clear < MAX_WAIT:
     if not firing(): resolved = time.time(); break
     time.sleep(5)
 stop.set()
 tot = under["ok"] + under["err"]
-rec = {"ts": datetime.now(timezone.utc).isoformat(), "expt": "E05", "cell_id": f"{fault}@{tel}",
-       "params": {"fault": fault, "telemetry": tel, "fault_s": FAULT_S, "rps": 1},
-       "metrics": {"mttd_s": round(first[0] - t_inject, 1) if first else None, "detected_by": first[1] if first else [],
-                   "mttr_s": round(resolved - t_clear, 1) if resolved else None,
-                   "success_rate": round(under["ok"] / tot, 3) if tot else None, "partial_rate": round(under["partial"] / tot, 3) if tot else None,
-                   "requests": tot},
-       "load1": float(open("/proc/loadavg").read().split()[0]),
-       "git_sha": subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=HERE, capture_output=True, text=True).stdout.strip(),
-       "notes": "MTTD = first bench alert 'firing' in Prometheus; MTTR = alert cleared after fault removed (no Alertmanager); mttd None = undetected"}
-open(os.path.join(HERE, "runs.jsonl"), "a").write(json.dumps(rec) + "\n"); print(json.dumps(rec["metrics"]), rec["cell_id"])
+print(json.dumps({"mttd_s": round(first[0] - t_inject, 1) if first else None, "detected_by": first[1] if first else [],
+                  "mttr_s": round(resolved - t_clear, 1) if resolved else None,
+                  "success_rate": round(under["ok"] / tot, 3) if tot else None,
+                  "partial_rate": round(under["partial"] / tot, 3) if tot else None, "requests": tot}))
