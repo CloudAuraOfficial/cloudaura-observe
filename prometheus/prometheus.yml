@@ -39,15 +39,9 @@ scrape_configs:
   #   - job_name: "aura-platform" · metrics_path: /metrics · target localhost:8006
   #     labels project "P6" · service "aura-platform" · stack "dotnet"
 
-  # P6 — aura-platform Worker (prometheus-net, metrics port)
-  - job_name: "aura-platform-worker"
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["localhost:9091"]
-        labels:
-          project: "P6"
-          service: "aura-worker"
-          stack: "dotnet"
+  # P6 — aura-platform Worker: scrape removed 2026-10-31 with the api job above. Restore:
+  #   - job_name: "aura-platform-worker" · metrics_path: /metrics · target localhost:9091
+  #     labels project "P6" · service "aura-worker" · stack "dotnet"
 
   # Node metrics (host machine)
   - job_name: "node"
