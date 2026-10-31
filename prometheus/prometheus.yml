@@ -24,15 +24,10 @@ scrape_configs:
   # P2 — cloudaura-slm: scrape removed 2026-10-09 (P2 built, not deployed; it kept ServiceDown
   # firing forever). Restore the job when P2 is deployed.
 
-  # P5 — cloudaura-voice (FastAPI)
-  - job_name: "cloudaura-voice"
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["localhost:8005"]
-        labels:
-          project: "P5"
-          service: "cloudaura-voice"
-          stack: "fastapi"
+  # P5 — cloudaura-voice: scrape removed 2026-10-31 (stack stopped by owner with docker compose
+  # stop). Restore the job when P5 is started again:
+  #   - job_name: "cloudaura-voice" · metrics_path: /metrics · target localhost:8005
+  #     labels project "P5" · service "cloudaura-voice" · stack "fastapi"
 
   # P6 — aura-platform: scrape removed 2026-10-31 (stack stopped by owner with docker compose
   # stop; volumes kept). Restore the job when P6 is started again:
