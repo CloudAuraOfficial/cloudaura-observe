@@ -31,7 +31,12 @@ jobs:
   deploy:
     needs: validate
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # DISABLED 2026-10-31: CI deploys over the shared VPS key are retired (key removed from the
+    # server, org secrets deleted). Every retained run of this job had failed SSH auth and
+    # continue-on-error hid it. Restore only with a fresh deploy user and key, by replacing
+    # the next line with:
+    #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: false
     steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
@@ -43,7 +48,6 @@ jobs:
             cd ~/cloudaura-observe
             git pull origin main
             docker compose up -d
-        continue-on-error: true
 
   smoke-test:
     needs: deploy
